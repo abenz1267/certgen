@@ -55,7 +55,7 @@ func pemBlockForKey(priv interface{}) *pem.Block {
 }
 
 // Generate creates local self-signed cert
-func Generate() {
+func Generate(folder string, hosts ...string) {
 	var priv interface{}
 	var err error
 
@@ -88,7 +88,6 @@ func Generate() {
 		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
 	}
-	hosts := []string{"localhost"}
 
 	for _, h := range hosts {
 		if ip := net.ParseIP(h); ip != nil {
@@ -112,7 +111,7 @@ func Generate() {
 		log.Fatalln("Couldn't find working directory to locate or save dev certificates:", err)
 	}
 
-	devcertsPath := filepath.Join(pwd, "certs")
+	devcertsPath := filepath.Join(pwd, folder)
 
 	// clear all old certs if found
 	err = os.RemoveAll(devcertsPath)
