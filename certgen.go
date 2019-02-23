@@ -54,8 +54,13 @@ func pemBlockForKey(priv interface{}) *pem.Block {
 	}
 }
 
+const (
+	certName = "cert.pem"
+	keyName  = "key.pem"
+)
+
 // Generate creates local self-signed cert
-func Generate(folder string, hosts ...string) error {
+func Generate(folder string, hosts ...string) (string, string, error) {
 	var priv interface{}
 	var err error
 
@@ -64,7 +69,7 @@ func Generate(folder string, hosts ...string) error {
 	priv, err = rsa.GenerateKey(rand.Reader, 2048)
 
 	if err != nil {
-		return fmt.Errorf("failed to generate private key: %s", err)
+		return certName, keyName, fmt.Errorf("failed to generate private key: %s", err)
 	}
 
 	notBefore := time.Now()
@@ -73,7 +78,7 @@ func Generate(folder string, hosts ...string) error {
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return fmt.Errorf("failed to generate serial number: %s", err)
+		return certName, keyName, fmt.Errorf("failed to generate serial number: %s", err)
 	}
 
 	template := x509.Certificate{
@@ -102,41 +107,35 @@ func Generate(folder string, hosts ...string) error {
 
 	derBytes, err := x509.CreateCertificate(rand.Reader, &template, &template, publicKey(priv), priv)
 	if err != nil {
-		return fmt.Errorf("Failed to create certificate: %s", err)
+		return certName, keyName, fmt.Errorf("Failed to create certificate: %s", err)
 	}
 
 	// overwrite/create directory for devcerts
 	pwd, err := os.Getwd()
 	if err != nil {
-		return fmt.Errorf("Couldn't find working directory to locate or save dev certificates: %s", err)
+		return certName, keyName, fmt.Errorf("Couldn't find working directory to locate or save dev certificates: %s", err)
 	}
 
 	devcertsPath := filepath.Join(pwd, folder)
 
-	// clear all old certs if found
-	err = os.RemoveAll(devcertsPath)
-	if err != nil {
-		return fmt.Errorf("Failed to remove old files from dev certificate directory: %s", err)
-	}
-
 	err = os.Mkdir(devcertsPath, os.ModeDir|os.ModePerm)
 	if err != nil {
-		return fmt.Errorf("Failed to create directory to locate or save dev certificates: %s", err)
+		return certName, keyName, fmt.Errorf("Failed to create directory to locate or save dev certificates: %s", err)
 	}
 
-	certOut, err := os.Create(filepath.Join(devcertsPath, "cert.pem"))
+	certOut, err := os.Create(filepath.Join(devcertsPath, certName))
 	if err != nil {
-		return fmt.Errorf("Failed to open devcerts/cert.pem for writing: %s", err)
+		return certName, keyName, fmt.Errorf("Failed to open devcerts/cert.pem for writing: %s", err)
 	}
 	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
 	certOut.Close()
 
-	keyOut, err := os.OpenFile(filepath.Join(devcertsPath, "key.pem"), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	keyOut, err := os.OpenFile(filepath.Join(devcertsPath, keyName), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		return fmt.Errorf("Failed to open devcerts/key.pem for writing: %s", err)
+		return certName, keyName, fmt.Errorf("Failed to open devcerts/key.pem for writing: %s", err)
 	}
 	pem.Encode(keyOut, pemBlockForKey(priv))
 	keyOut.Close()
 
-	return nil
+	return certName, keyName, nil
 }
