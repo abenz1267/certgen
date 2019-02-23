@@ -137,5 +137,5 @@ func Generate(folder string, hosts ...string) (string, string, error) {
 	pem.Encode(keyOut, pemBlockForKey(priv))
 	keyOut.Close()
 
-	return certName, keyName, nil
+	return filepath.Join(folder, certName), filepath.Join(folder, keyName), nil
 }
