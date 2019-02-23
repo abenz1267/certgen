@@ -118,24 +118,26 @@ func Generate(folder string, hosts ...string) (string, string, error) {
 
 	devcertsPath := filepath.Join(pwd, folder)
 
-	err = os.Mkdir(devcertsPath, os.ModeDir|os.ModePerm)
-	if err != nil {
-		return certName, keyName, fmt.Errorf("Failed to create directory to locate or save dev certificates: %s", err)
-	}
+	if _, err := os.Stat(devcertsPath); os.IsNotExist(err) {
+		err = os.Mkdir(devcertsPath, os.ModeDir|os.ModePerm)
+		if err != nil {
+			return certName, keyName, fmt.Errorf("Failed to create directory to locate or save dev certificates: %s", err)
+		}
 
-	certOut, err := os.Create(filepath.Join(devcertsPath, certName))
-	if err != nil {
-		return certName, keyName, fmt.Errorf("Failed to open devcerts/cert.pem for writing: %s", err)
-	}
-	pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
-	certOut.Close()
+		certOut, err := os.Create(filepath.Join(devcertsPath, certName))
+		if err != nil {
+			return certName, keyName, fmt.Errorf("Failed to open devcerts/cert.pem for writing: %s", err)
+		}
+		pem.Encode(certOut, &pem.Block{Type: "CERTIFICATE", Bytes: derBytes})
+		certOut.Close()
 
-	keyOut, err := os.OpenFile(filepath.Join(devcertsPath, keyName), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
-	if err != nil {
-		return certName, keyName, fmt.Errorf("Failed to open devcerts/key.pem for writing: %s", err)
+		keyOut, err := os.OpenFile(filepath.Join(devcertsPath, keyName), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+		if err != nil {
+			return certName, keyName, fmt.Errorf("Failed to open devcerts/key.pem for writing: %s", err)
+		}
+		pem.Encode(keyOut, pemBlockForKey(priv))
+		keyOut.Close()
 	}
-	pem.Encode(keyOut, pemBlockForKey(priv))
-	keyOut.Close()
 
 	return filepath.Join(folder, certName), filepath.Join(folder, keyName), nil
 }
