@@ -57,8 +57,8 @@ func main() {
 	flag.Parse()
 
 	if len(*host) == 0 {
-		*host = "localhost,127.0.0.1"
-		log.Println("No --host parameter. Using 'localhost,127.0.0.1'")
+		*host = "localhost,127.0.0.1,0.0.0.0"
+		log.Println("No --host parameter. Using 'localhost,127.0.0.1,0.0.0.0'")
 	}
 
 	var err error
